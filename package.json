@@ -1,0 +1,26 @@
+{
+  "name": "kwiz",
+  "version": "1.0.0",
+  "description": "backend test",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "author": "Mohamed Achraf Bouanani",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^3.0.0",
+    "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
+    "express": "^4.16.4",
+    "express-session": "^1.15.6",
+    "git": "^0.1.5",
+    "jsonwebtoken": "^7.4.3",
+    "mysql": "^2.16.0",
+    "mysql2": "^1.6.5",
+    "nodemon": "^1.18.10",
+    "sequelize": "^5.2.8",
+    "sequelize-cli": "^5.4.0"
+  },
+  "devDependencies": {}
+}
