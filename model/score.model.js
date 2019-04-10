@@ -34,7 +34,7 @@ module.exports = db.sequelize.define(
             type: Sequelize.INTEGER,
         },
         medal: {
-            type: Sequelize.STRING,
+            type: Sequelize.INTEGER,
         },
         created: {
             type: Sequelize.DATE,

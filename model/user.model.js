@@ -26,9 +26,36 @@ module.exports = db.sequelize.define(
             defaultValue: Sequelize.NOW
         },
         schoolId: {
-            type: Sequelize.NUMBER,
-            defaultValue: 1
-        }
+            type: Sequelize.NUMBER
+        },
+        birthdate: {
+            type: Sequelize.DATE,
+        },
+        gender: {
+            type: Sequelize.STRING,
+        },
+        phone: {
+            type: Sequelize.STRING,
+        },
+        class: {
+            type: Sequelize.STRING,
+        },
+        district: {
+            type: Sequelize.STRING,
+        },
+        city: {
+            type: Sequelize.STRING,
+        },
+        province: {
+            type: Sequelize.STRING,
+        },
+        image: {
+            type: Sequelize.STRING,
+        },
+        permission: {
+            type: Sequelize.INTEGER,
+        },
+
     },
     {
         timestamps: false
