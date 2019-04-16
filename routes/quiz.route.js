@@ -1,7 +1,9 @@
 const express = require("express");
 const quiz = express.Router();
 const cors = require("cors");
+
 const Sequelize = require("sequelize");
+const Op = Sequelize.Op
 const Subject = require("../model/subject.model");
 const Level = require("../model/level.model");
 const Quiz = require("../model/quiz.model");
@@ -30,7 +32,7 @@ quiz.use(cors());
 quiz.get("/all", (req, res) => {
   Quiz.findAll({
     order: Sequelize.fn("RAND"),
-    include: [{ model: Subject }, { model: Level }]
+    include: [{ model: Subject }, { model: Level }, {model: User, attributes: ['firstname', 'lastname']}]
   }).then(quiz => res.json(quiz));
 });
 
@@ -54,6 +56,15 @@ quiz.get("/get/:id", (req, res) => {
       return res.status(200).json(quiz);
     })
     .catch(error => res.status(400).send(error));
+});
+
+quiz.get("/suggest/:subjectId/:currentId", (req, res) => {
+  Quiz.findAll({
+    where: {subjectId: req.params.subjectId, id: {[Op.ne]: req.params.currentId}},
+    order: Sequelize.fn("RAND"),
+    limit: 3,
+    include: [{ model: Subject }, { model: Level }, {model: User, attributes: ['firstname', 'lastname']}]
+  }).then(quiz => res.json(quiz));
 });
 
 quiz.put("/updatePlayed/:id", (req, res) => {
@@ -98,7 +109,7 @@ quiz.get('/countQuizzes', (req,res) => {
   Quiz.count('id').then(quiz => res.json(quiz))
 })
 
-quiz.get('/sumQuizPlayed', (req,res) => {
+quiz.get('/quizPlayedSum', (req,res) => {
   Quiz.sum('played').then(quiz => res.json(quiz))
 })
 

@@ -55,6 +55,9 @@ module.exports = db.sequelize.define(
         permission: {
             type: Sequelize.INTEGER,
         },
+        levelId: {
+            type: Sequelize.INTEGER
+        }
 
     },
     {

@@ -5,10 +5,19 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 const User = require("../model/user.model");
+const School = require("../model/school.model");
+const Level = require("../model/level.model");
+
+
+User.belongsTo(School)
+School.hasMany(User)
+
+User.belongsTo(Level)
+Level.hasMany(User)
+
 users.use(cors());
 
 process.env.SECRET_KEY = "secret";
-
 
 users.post("/register", (req, res) => {
   const today = new Date();
@@ -17,6 +26,17 @@ users.post("/register", (req, res) => {
     lastname: req.body.lastname,
     email: req.body.email,
     password: req.body.password,
+    schoolId: req.body.schoolId,
+    birthdate: req.body.birthdate,
+    gender: req.body.gender,
+    phone: req.body.phone,
+    levelId: req.body.levelId,
+    class: req.body.class,
+    district: req.body.district,
+    city: req.body.city,
+    province: req.body.province,
+    image: req.body.image,
+    permission: 0,
     created: today
   };
 
@@ -69,7 +89,8 @@ users.post("/login", (req, res) => {
     });
 });
 
-users.get("/newest", (req, res) => {
+
+users.get("/newest/", (req, res) => {
   User.findAll({
     limit: 1,
     order: [["created", "DESC"]],
@@ -77,8 +98,38 @@ users.get("/newest", (req, res) => {
   }).then(user => res.json(user));
 });
 
+
 users.get("/count", (req, res) => {
   User.count().then(count => res.json(count));
 });
+
+users.get("/:id",(req,res) => {
+  User.findByPk(req.params.id,
+    {include: [{model: School}, {model: Level}]}).then(user => res.json(user))
+})
+
+users.get("/",(req,res) => {
+  User.findAll().then(user => res.json(user))
+})
+
+users.put('/:id', function (req, res, next) {
+  User.update(
+    {firstname: req.body.firstname,
+    lastname: req.body.lastname,
+    birthdate: req.body.birthdate,
+    phone: req.body.phone,
+    gender: req.body.gender,
+    district: req.body.district,
+    city: req.body.city,
+    province: req.body.province,
+    image: req.body.image,
+    levelId: req.body.levelId},
+    {where: {id: req.params.id}}
+  )
+  .then(function(rowsUpdated) {
+    res.json(rowsUpdated)
+  })
+  .catch(next)
+ })
 
 module.exports = users;

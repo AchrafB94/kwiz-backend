@@ -12,7 +12,7 @@ module.exports = db.sequelize.define(
         name: {
             type: Sequelize.STRING,
         },
-        link: {
+        image: {
             type: Sequelize.STRING
         }
 

@@ -43,6 +43,9 @@ module.exports = db.sequelize.define(
             type: Sequelize.INTEGER,
             defaultValue: 0
         },
+        description: {
+            type: Sequelize.STRING
+        }
 
 
     },
