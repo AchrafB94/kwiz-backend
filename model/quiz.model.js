@@ -50,7 +50,6 @@ module.exports = db.sequelize.define(
 
     },
     {
-        tableName: 'quiz',
-        timestamps: false
+        tableName: 'quiz'
     }
 )

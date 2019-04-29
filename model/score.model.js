@@ -35,17 +35,9 @@ module.exports = db.sequelize.define(
         },
         medal: {
             type: Sequelize.INTEGER,
-        },
-        created: {
-            type: Sequelize.DATE,
-            defaultValue: Sequelize.NOW
-        },
-
+        }
 
 
 
     },
-    {
-        timestamps: false
-    }
 )

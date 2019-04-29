@@ -14,13 +14,22 @@ module.exports = db.sequelize.define(
             references: 'quiz',
             referencesKey: 'id' 
         },
+        type: {
+            type: Sequelize.BOOLEAN
+        },
         text: {
             type: Sequelize.STRING,
+        },
+        levelId: {
+            type: Sequelize.INTEGER,
+            references: 'levels',
+            referencesKey: 'id'
+        },
+        subjectId: {
+            type: Sequelize.INTEGER,
+            references: 'subject',
+            referencesKey: 'id'
         }
 
-    },
-    {
-        timestamps: false
     }
 )
-

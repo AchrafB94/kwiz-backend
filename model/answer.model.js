@@ -21,8 +21,5 @@ module.exports = db.sequelize.define(
             type: Sequelize.BOOLEAN
         }
 
-    },
-    {
-        timestamps: false
     }
-)
+) 

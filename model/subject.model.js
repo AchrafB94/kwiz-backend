@@ -16,8 +16,5 @@ module.exports = db.sequelize.define(
             type: Sequelize.STRING
         }
 
-    },
-    {
-        timestamps: false
     }
 )

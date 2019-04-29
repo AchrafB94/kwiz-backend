@@ -21,10 +21,6 @@ module.exports = db.sequelize.define(
         lastname: {
             type: Sequelize.STRING
         },
-        created: {
-            type: Sequelize.DATE,
-            defaultValue: Sequelize.NOW
-        },
         schoolId: {
             type: Sequelize.NUMBER
         },
@@ -60,7 +56,4 @@ module.exports = db.sequelize.define(
         }
 
     },
-    {
-        timestamps: false
-    }
 )

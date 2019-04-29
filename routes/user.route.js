@@ -8,6 +8,24 @@ const User = require("../model/user.model");
 const School = require("../model/school.model");
 const Level = require("../model/level.model");
 
+let fs = require('fs-extra');
+
+var multer = require('multer')
+
+
+
+
+var storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+    cb(null, 'public/images')
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname)
+  }
+})
+
+var upload = multer({ storage: storage }).single('file')
+
 
 User.belongsTo(School)
 School.hasMany(User)
@@ -20,7 +38,6 @@ users.use(cors());
 process.env.SECRET_KEY = "secret";
 
 users.post("/register", (req, res) => {
-  const today = new Date();
   const userData = {
     firstname: req.body.firstname,
     lastname: req.body.lastname,
@@ -37,7 +54,6 @@ users.post("/register", (req, res) => {
     province: req.body.province,
     image: req.body.image,
     permission: 0,
-    created: today
   };
 
   User.findOne({
@@ -66,6 +82,23 @@ users.post("/register", (req, res) => {
     });
 });
 
+
+
+users.post('/upload',function(req, res) {
+     
+    upload(req, res, function (err) {
+           if (err instanceof multer.MulterError) {
+               return res.status(500).json(err)
+           } else if (err) {
+               return res.status(500).json(err)
+           }
+      return res.status(200).send(req.file)
+
+    })
+
+});
+
+
 users.post("/login", (req, res) => {
   User.findOne({
     where: {
@@ -90,10 +123,12 @@ users.post("/login", (req, res) => {
 });
 
 
+
+
 users.get("/newest/", (req, res) => {
   User.findAll({
     limit: 1,
-    order: [["created", "DESC"]],
+    order: [["createdAt", "DESC"]],
     attributes: ["firstname", "lastname"]
   }).then(user => res.json(user));
 });
@@ -111,6 +146,18 @@ users.get("/:id",(req,res) => {
 users.get("/",(req,res) => {
   User.findAll().then(user => res.json(user))
 })
+
+
+users.put('/image/:id/', function (req, res, next) {
+  User.update({
+    image: req.body.filename},
+    {where: {id: req.params.id}}
+  )
+  .then(function(rowsUpdated) {
+    res.json(rowsUpdated)
+  })
+  .catch(next)
+ })
 
 users.put('/:id', function (req, res, next) {
   User.update(
@@ -131,5 +178,13 @@ users.put('/:id', function (req, res, next) {
   })
   .catch(next)
  })
+
+
+ users.get('/',(req,res) => {
+   User.findAll().then(user => res.json(user))
+ })
+ 
+ users.put('/permission/:level')
+ 
 
 module.exports = users;

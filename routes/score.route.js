@@ -8,14 +8,24 @@ const User = require("../model/user.model")
 const School = require("../model/school.model")
 const Subject = require("../model/subject.model")
 
-function startOfWeek(date)
+function lastWeek()
   {
-    var diff = date.getDate() - date.getDay() + (date.getDay() === 0 ? -7 : 0);
-    date.setTime(0)
-    return new Date(date.setDate(diff));
+      
+var date = new Date();
+
+var days = date.getDay() - 1
+var last = new Date(date.getTime() - (days * 24 * 60 * 60 * 1000));
+var day =last.getDate();
+var month=last.getMonth();
+var year=last.getFullYear();
+
+    date = new Date(year,month,day)
+    return date
   } 
 
-  const today = new Date()
+  console.log(lastWeek())
+ 
+
 
 User.hasMany(Score);
 Score.belongsTo(User);
@@ -28,7 +38,7 @@ Score.belongsTo(Subject);
 
 scores.use(cors())
 
-scores.post('/add', (req, res) => {
+scores.post('/', (req, res) => {
     
     const scoreData = {
         quizId: req.body.quizId,
@@ -39,8 +49,7 @@ scores.post('/add', (req, res) => {
         score: req.body.score,
         time: req.body.time,
         percentage: req.body.percentage,
-        medal: req.body.medal,
-        created: today
+        medal: req.body.medal
     }
     Score.create(scoreData)
     .then(score => {
@@ -49,6 +58,20 @@ scores.post('/add', (req, res) => {
     .catch(err => {
         res.send('error: ' + err)
     })
+})
+
+
+scores.get('/checkWinner/:quizId/:userId',(req,res) => {
+    Score.count({
+        where: {userId: req.params.userId, 
+            quizId: req.params.quizId, 
+            createdAt: {[Op.gte]: lastWeek()},
+            percentage: 100, 
+            
+        }
+        
+            
+    }).then(score => score > 0 ? res.send(true) : res.send(false) )
 })
 
 
@@ -78,7 +101,7 @@ scores.get('/schoolsByScore',(req,res) => {
 
 scores.get('/topSchoolsThisWeek',(req,res) => {
     Score.findAll({
-        where:     {created: {[Op.gt]: startOfWeek(today),  
+        where:     {createdAt: {[Op.gte]: lastWeek(),  
         }},
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
         include: [{model: School, attributes: ['name']}],
@@ -143,7 +166,7 @@ scores.get('/usersByScore',(req,res) => {
 
 scores.get('/topUsersThisWeek',(req,res) => {
     Score.findAll({
-        where:     {created: {[Op.gte]: startOfWeek(today), 
+        where:     {createdAt: {[Op.gte]: lastWeek(), 
         }},
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
         include: [{model: User, attributes: ['firstname','lastname']}],
@@ -229,8 +252,22 @@ scores.get('/userFavoriteSubject/:userId',(req,res) => {
 })
 
 
+scores.get('/winners/:subjectId/:levelId',(req,res) => {
+    Score.findAll({    
+        where: {subjectId: req.params.subjectId, levelId: req.params.levelId},    
+        attributes:  [[Sequelize.fn('sum', Sequelize.col('medal')), 'total_medals']],
+        include: [{model: User, attributes: ['firstname','lastname']}, {model: School}],
+        group: 'userId',
+        order:  Sequelize.literal('sum(medal) DESC'),
+        limit: 5
+
+        
+    }).then(score => res.json(score))
+})
+
 scores.get('/popularSubjects',(req,res) => {
     Score.findAll({
+        
         attributes:  [[Sequelize.fn('count', Sequelize.col('subjectId')), 'played']], 
         include: [{model: Subject, attributes: ['name']}],
         group: 'subjectId',
