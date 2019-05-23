@@ -36,19 +36,10 @@ module.exports = db.sequelize.define(
         class: {
             type: Sequelize.STRING,
         },
-        district: {
-            type: Sequelize.STRING,
-        },
-        city: {
-            type: Sequelize.STRING,
-        },
-        province: {
-            type: Sequelize.STRING,
-        },
         image: {
             type: Sequelize.STRING,
         },
-        permission: {
+        roleId: {
             type: Sequelize.INTEGER,
         },
         levelId: {

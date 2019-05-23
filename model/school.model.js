@@ -12,6 +12,15 @@ module.exports = db.sequelize.define(
         name: {
             type: Sequelize.STRING,
         },
+        address: {
+            type: Sequelize.STRING,
+        },
+        region: {
+            type: Sequelize.STRING,
+        },
+        country: {
+            type: Sequelize.STRING,
+        },
 
     }
 )

@@ -25,7 +25,7 @@ subjects.post('/',(req,res) => {
         name: req.body.name
     }
 
-    Subject.create(name).then(subject => res.json(subject))
+    Subject.create(subjectData).then(subject => res.json(subject))
 })
 
 subjects.put('/:id/', function (req, res, next) {
@@ -33,11 +33,8 @@ subjects.put('/:id/', function (req, res, next) {
       name: req.body.name},
       {where: {id: req.params.id}}
     )
-    .then(function(rowsUpdated) {
-      res.json(rowsUpdated)
-    })
-    .catch(next)
-   })
+    .then(subject => res.json(subject))
+})
 
    subjects.delete('/:id',(req,res) => {
     Subject.destroy({

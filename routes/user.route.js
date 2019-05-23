@@ -8,6 +8,10 @@ const User = require("../model/user.model");
 const School = require("../model/school.model");
 const Level = require("../model/level.model");
 
+const Permission = require("../model/permission.model");
+const Role = require("../model/role.model");
+const Rule = require("../model/rule.model");
+
 let fs = require('fs-extra');
 
 var multer = require('multer')
@@ -30,8 +34,20 @@ var upload = multer({ storage: storage }).single('file')
 User.belongsTo(School)
 School.hasMany(User)
 
+
+
 User.belongsTo(Level)
 Level.hasMany(User)
+
+User.belongsTo(Role)
+Role.hasMany(User)
+
+Permission.belongsTo(Role)
+Role.hasMany(Permission)
+
+Permission.belongsTo(Rule)
+Rule.hasMany(Permission)
+
 
 users.use(cors());
 
@@ -49,9 +65,6 @@ users.post("/register", (req, res) => {
     phone: req.body.phone,
     levelId: req.body.levelId,
     class: req.body.class,
-    district: req.body.district,
-    city: req.body.city,
-    province: req.body.province,
     image: req.body.image,
     permission: 0,
   };
@@ -74,11 +87,11 @@ users.post("/register", (req, res) => {
             });
         });
       } else {
-        res.json({ error: "User already exists" });
+        res.json({ code: 10 });
       }
     })
     .catch(err => {
-      res.send("error: " + err);
+      res.send(err);
     });
 });
 
@@ -103,7 +116,8 @@ users.post("/login", (req, res) => {
   User.findOne({
     where: {
       email: req.body.email
-    }
+    },
+    include: {model: Role, include: [{model: Permission}]}
   })
     .then(user => {
       if (user) {
@@ -112,26 +126,41 @@ users.post("/login", (req, res) => {
             expiresIn: 1440
           });
           res.send(token);
+        }else {
+          res.status(400).json({ error: "Username or password is not correct"});
         }
       } else {
-        res.status(400).json({ error: "Username or password is not correct" });
+        res.status(400).json({ code: "Username or password is not correct"});
       }
     })
     .catch(err => {
-      res.status(400).send(err);
+      res.send(err);
     });
 });
 
 
-
+users.get("/new/", (req, res) => {
+  User.findAll({
+    limit: 15,
+    order: [["createdAt", "DESC"]],
+    attributes: ["id","firstname", "lastname","image"],
+    include: {model: School, attributes: ['id','name']}
+  }).then(user => res.json(user));
+});
 
 users.get("/newest/", (req, res) => {
   User.findAll({
     limit: 1,
     order: [["createdAt", "DESC"]],
-    attributes: ["firstname", "lastname"]
+    attributes: ["id","firstname", "lastname"]
   }).then(user => res.json(user));
 });
+
+users.get("/permission/",(req,res) => {
+ Permission.findOne({where: {roleId: req.body.roleId,ruleId: req.body.ruleId},include: [{model: Rule, attributes: ['name']}]})
+  .then(permission => permission ? res.json({code: 110} ) : res.json({code: 120}))
+  .catch(err => res.json(err))
+})
 
 
 users.get("/count", (req, res) => {
@@ -140,15 +169,16 @@ users.get("/count", (req, res) => {
 
 users.get("/:id",(req,res) => {
   User.findByPk(req.params.id,
-    {include: [{model: School}, {model: Level}]}).then(user => res.json(user))
+    {include: [{model: School}, {model: Level},{model: Role, include: [{model: Permission}]}]}).then(user => res.json(user))
 })
 
 users.get("/",(req,res) => {
-  User.findAll().then(user => res.json(user))
+  User.findAll({include: [{model: School},{model: Level}]}).then(user => res.json(user))
 })
 
 
 users.put('/image/:id/', function (req, res, next) {
+
   User.update({
     image: req.body.filename},
     {where: {id: req.params.id}}
@@ -166,11 +196,9 @@ users.put('/:id', function (req, res, next) {
     birthdate: req.body.birthdate,
     phone: req.body.phone,
     gender: req.body.gender,
-    district: req.body.district,
-    city: req.body.city,
-    province: req.body.province,
     image: req.body.image,
-    levelId: req.body.levelId},
+    levelId: req.body.levelId,
+  schoolId: req.body.schoolId},
     {where: {id: req.params.id}}
   )
   .then(function(rowsUpdated) {
@@ -184,7 +212,14 @@ users.put('/:id', function (req, res, next) {
    User.findAll().then(user => res.json(user))
  })
  
- users.put('/permission/:level')
+ users.put('/permission/:id/:level',(req,res) => {
+   User.update(
+    {permission: req.params.level},
+    {where: {id: req.params.id}}
+    )
+ })
+
+ 
  
 
 module.exports = users;

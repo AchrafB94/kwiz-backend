@@ -2,7 +2,7 @@ const Sequelize = require("sequelize")
 const db = require("../config/db")
 
 module.exports = db.sequelize.define(
-    'subject',
+    'rule',
     {
         id: {
             type: Sequelize.INTEGER,
@@ -10,6 +10,9 @@ module.exports = db.sequelize.define(
             autoIncrement: true
         },
         name: {
+            type: Sequelize.STRING,
+        },
+        description: {
             type: Sequelize.STRING,
         }
 

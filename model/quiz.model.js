@@ -28,10 +28,6 @@ module.exports = db.sequelize.define(
             references: 'users',
             referencesKey: 'id' 
         },
-        created: {
-            type: Sequelize.DATE,
-            defaultValue: Sequelize.NOW
-        },
         rank: {
             type: Sequelize.INTEGER,
         },

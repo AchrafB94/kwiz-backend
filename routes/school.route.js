@@ -21,11 +21,14 @@ schools.get('/', (req,res) => {
 
 schools.post('/',(req,res) => {
     const schoolData = {
-        name: req.body.name
+        name: req.body.name,
+        country: req.body.country,
+        region: req.body.region,
+        address: req.body.address
     }
     School.create(schoolData)
     .then(school => {
-        res.json({ status: 'school id: ' + school.id + ' added' })
+        res.json(school)
     })
     .catch(err => {
         res.send('error: ' + err)
@@ -37,9 +40,7 @@ schools.put('/:id/', function (req, res, next) {
       name: req.body.name},
       {where: {id: req.params.id}}
     )
-    .then(function(rowsUpdated) {
-      res.json(rowsUpdated)
-    })
+    .then(school => res.json(school))
     .catch(next)
    })
 

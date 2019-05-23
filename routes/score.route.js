@@ -7,7 +7,10 @@ const Score = require("../model/score.model")
 const User = require("../model/user.model")
 const School = require("../model/school.model")
 const Subject = require("../model/subject.model")
+const Quiz = require("../model/quiz.model")
+const Level = require("../model/level.model")
 
+ 
 function lastWeek()
   {
       
@@ -23,9 +26,6 @@ var year=last.getFullYear();
     return date
   } 
 
-  console.log(lastWeek())
- 
-
 
 User.hasMany(Score);
 Score.belongsTo(User);
@@ -35,6 +35,12 @@ Score.belongsTo(School);
 
 Subject.hasMany(Score);
 Score.belongsTo(Subject);
+
+Quiz.hasMany(Score);
+Score.belongsTo(Quiz);
+
+Level.hasMany(Score);
+Score.belongsTo(Level);
 
 scores.use(cors())
 
@@ -61,6 +67,31 @@ scores.post('/', (req, res) => {
 })
 
 
+scores.get('/new',(req,res) => {
+    Score.findAll({
+        limit: 10,
+        order: [ ['createdAt', 'DESC']],
+        include: [{model: User, attributes: ['id','firstname','lastname']}, {model: Level, attributes: ['id','name']}, {model: Subject, attributes: ['id','name']}, {model: Quiz, attributes: ['id','name']}]
+    }).then(score => res.json(score))
+})
+
+scores.get('/filter/:levelId/:subjectId',(req,res) => {
+    Score.findAll({
+        where: {levelId: req.params.levelId, subjectId: req.params.subjectId},
+        order: [ ['createdAt', 'DESC']],
+        include: [{model: User, attributes: ['id','firstname','lastname']}, {model: Level, attributes: ['id','name']}, {model: Subject, attributes: ['id','name']}, {model: Quiz, attributes: ['id','name']}]
+    }).then(score => res.json(score))
+})
+
+scores.get('/filter/:levelId/',(req,res) => {
+    Score.findAll({
+        where: {levelId: req.params.levelId},
+        order: [ ['createdAt', 'DESC']],
+        include: [{model: User, attributes: ['id','firstname','lastname']}, {model: Level, attributes: ['id','name']}, {model: Subject, attributes: ['id','name']}, {model: Quiz, attributes: ['id','name']}]
+    }).then(score => res.json(score))
+})
+
+
 scores.get('/checkWinner/:quizId/:userId',(req,res) => {
     Score.count({
         where: {userId: req.params.userId, 
@@ -81,7 +112,7 @@ scores.get('/lastThreeWinners',(req,res) => {
         where: {
             [Op.or]: [{medal: '100'}, {medal: '10'}, {medal: '1'}]
         },
-        include: [ { model: User, attributes: ['firstname','lastname','image','class']} , {model: School, attributes: ['name']} ],
+        include: [ { model: User, attributes: ['id','firstname','lastname','image','class']} , {model: Subject, attributes: ['id','name']}, {model: School, attributes: ['id','name']} ],
         limit: 3,
         order: [ ['id', 'DESC']]
     }).then(score => res.json(score))
@@ -90,7 +121,7 @@ scores.get('/lastThreeWinners',(req,res) => {
 scores.get('/schoolsByScore',(req,res) => {
     Score.findAll({
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
-        include: [{model: School, attributes: ['name']}],
+        include: [{model: School, attributes: ['id','name']}],
         group: 'schoolId',
         order:  Sequelize.literal('sum(score) DESC'),
         limit: 100
@@ -104,7 +135,7 @@ scores.get('/topSchoolsThisWeek',(req,res) => {
         where:     {createdAt: {[Op.gte]: lastWeek(),  
         }},
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
-        include: [{model: School, attributes: ['name']}],
+        include: [{model: School, attributes: ['id','name']}],
         group: 'schoolId',
         order:  Sequelize.literal('sum(score) DESC'),
         limit: 100
@@ -113,11 +144,30 @@ scores.get('/topSchoolsThisWeek',(req,res) => {
     }).then(score => res.json(score))
 })
 
+scores.get('/medals/:schoolId',(req,res) => {
+    Score.findAll({
+        where: {schoolId: req.params.schoolId},        
+        attributes:  [[Sequelize.fn('sum', Sequelize.col('medal')), 'total_medals']],
+
+        
+    }).then(score => res.json(score))
+})
+
+scores.get("/usermedalsbyschool/:id", (req,res) => {
+    Score.findAll({where: {schoolId: req.params.id},
+    attributes:  [[Sequelize.fn('sum', Sequelize.col('medal')), 'total_medals']],
+    include: {model: User, attributes: ['id','firstname','lastname']} ,
+    group: 'userId',
+    order:  Sequelize.literal('sum(medal) DESC'),
+})
+.then(score => res.json(score))
+  })
+
 
 scores.get('/schoolsByMedals',(req,res) => {
     Score.findAll({        
         attributes:  [[Sequelize.fn('sum', Sequelize.col('medal')), 'total_medals']],
-        include: [{model: School, attributes: ['name']}],
+        include: [{model: School, attributes: ['id','name']}],
         group: 'schoolId',
         order:  Sequelize.literal('sum(medal) DESC'),
         limit: 100
@@ -125,11 +175,13 @@ scores.get('/schoolsByMedals',(req,res) => {
         
     }).then(score => res.json(score))
 })
+
+
 scores.get('/schoolsByLevel/:levelId',(req,res) => {
     Score.findAll({
         where: {levelId: req.params.levelId} ,
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
-        include: [{model: School, attributes: ['name']}],
+        include: [{model: School, attributes: ['id','name']}],
         group: 'schoolId',
         order:  Sequelize.literal('sum(score) DESC'),
         limit: 100
@@ -141,7 +193,7 @@ scores.get('/schoolsBySubject/:subjectId',(req,res) => {
     Score.findAll({
         where: {subjectId: req.params.subjectId} ,
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
-        include: [{model: School, attributes: ['name']}],
+        include: [{model: School, attributes: ['id','name']}],
         group: 'schoolId',
         order:  Sequelize.literal('sum(score) DESC'),
         limit: 100
@@ -154,7 +206,7 @@ scores.get('/schoolsBySubject/:subjectId',(req,res) => {
 scores.get('/usersByScore',(req,res) => {
     Score.findAll({
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
-        include: [{model: User, attributes: ['firstname','lastname']}, {model: School}],
+        include: [{model: User, attributes: ['id','firstname','lastname']}, {model: Level}, {model: School}],
         group: 'userId',
         order:  Sequelize.literal('sum(score) DESC'),
         limit: 100
@@ -169,19 +221,17 @@ scores.get('/topUsersThisWeek',(req,res) => {
         where:     {createdAt: {[Op.gte]: lastWeek(), 
         }},
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
-        include: [{model: User, attributes: ['firstname','lastname']}],
+        include: [{model: User, attributes: ['id','firstname','lastname']}],
         group: 'userId',
         order:  Sequelize.literal('sum(score) DESC'),
         limit: 100
-
-        
     }).then(score => res.json(score))
 })
 
 scores.get('/usersByMedals',(req,res) => {
     Score.findAll({        
         attributes:  [[Sequelize.fn('sum', Sequelize.col('medal')), 'total_medals']],
-        include: [{model: User, attributes: ['firstname','lastname']}, {model: School}],
+        include: [{model: User, attributes: ['id','firstname','lastname']}, {model: School}],
         group: 'userId',
         order:  Sequelize.literal('sum(medal) DESC'),
         limit: 100
@@ -193,7 +243,7 @@ scores.get('/usersByLevel/:levelId',(req,res) => {
     Score.findAll({
         where: {levelId: req.params.levelId} ,
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
-        include: [{model: User, attributes: ['firstname','lastname']}, {model: School}],
+        include: [{model: User, attributes: ['id','firstname','lastname']}, {model: School}],
         group: 'userId',
         order:  Sequelize.literal('sum(score) DESC'),
         limit: 100
@@ -205,7 +255,7 @@ scores.get('/usersBySubject/:subjectId',(req,res) => {
     Score.findAll({
         where: {subjectId: req.params.subjectId} ,
         attributes:  [[Sequelize.fn('sum', Sequelize.col('score')), 'total_score']], 
-        include: [{model: User, attributes: ['firstname','lastname']}],
+        include: [{model: User, attributes: ['id','firstname','lastname']}],
         group: 'userId',
         order:  Sequelize.literal('sum(score) DESC'),
         limit: 100
@@ -231,6 +281,11 @@ scores.get('/userSumMedals/:userId', (req,res) => {
         where: {userId: req.params.userId}
     }).then(score => res.json(score))
 })
+scores.get('/schoolSumMedals/:schoolId', (req,res) => {
+    Score.sum('medal', {
+        where: {schoolId: req.params.schoolId}
+    }).then(score => res.json(score))
+})
 
 scores.get('/userAverage/:userId', (req,res) => {
     Score.findAll({
@@ -251,12 +306,19 @@ scores.get('/userFavoriteSubject/:userId',(req,res) => {
     }).then(score => res.json(score))
 })
 
+scores.get('/quizwinners/:quizId/',(req,res) => {
+    Score.findAll({    
+        where: {quizId: req.params.quizId, [Op.or]: [{medal: '100'}, {medal: '10'}, {medal: '1'}] },    
+        include: [{model: User, attributes: ['id','firstname','lastname']}, {model: School}],
+        order: Sequelize.literal('createdAt DESC'),
+    }).then(score => res.json(score))
+})
 
 scores.get('/winners/:subjectId/:levelId',(req,res) => {
     Score.findAll({    
         where: {subjectId: req.params.subjectId, levelId: req.params.levelId},    
         attributes:  [[Sequelize.fn('sum', Sequelize.col('medal')), 'total_medals']],
-        include: [{model: User, attributes: ['firstname','lastname']}, {model: School}],
+        include: [{model: User, attributes: ['id','firstname','lastname']}, {model: School}],
         group: 'userId',
         order:  Sequelize.literal('sum(medal) DESC'),
         limit: 5
@@ -278,6 +340,11 @@ scores.get('/popularSubjects',(req,res) => {
     }).then(score => res.json(score))
 })
 
-
+scores.get('/',(req,res) => {
+    Score.findAll({
+        order: [ ['createdAt', 'DESC']],
+        include: [{model: User, attributes: ['id','firstname','lastname']}, {model: School, attributes: ['id','name']}, {model: Subject, attributes: ['id','name']}, {model: Level, attributes: ['id','name']}, {model: Quiz, attributes: ['id','name']}]
+    }).then(score => res.json(score))
+})
 
 module.exports = scores
