@@ -1,3 +1,4 @@
+"use strict";
 const express = require("express");
 const quiz = express.Router();
 const cors = require("cors");
@@ -10,6 +11,12 @@ const Quiz = require("../model/quiz.model");
 const Question = require("../model/question.model");
 const Answer = require("../model/answer.model");
 const User = require('../model/user.model')
+const Score = require('../model/score.model')
+const nodemailer = require("nodemailer");
+
+var schedule = require('node-schedule');
+ 
+
 
 Level.hasMany(Quiz);
 Quiz.belongsTo(Level);
@@ -19,6 +26,9 @@ Quiz.belongsTo(Subject);
 
 User.hasMany(Quiz);
 Quiz.belongsTo(User);
+
+Quiz.hasMany(Score);
+Score.belongsTo(Quiz);
 
 Quiz.hasMany(Question);
 Question.belongsTo(Quiz);
@@ -45,7 +55,20 @@ var year=last.getFullYear();
     return date
   } 
 
+  var j = schedule.scheduleJob(({hour: 0, minute: 1, dayOfWeek: 0}), function(){
+    
 
+    Quiz.findAll( {raw: true}).then(result => {
+      result.forEach(quiz => {
+        if(quiz.rank === 0) {
+          Quiz.count({where: {userId: quiz.userId}}).then(count => Quiz.update({rank: (count-1)},{where: {rank: quiz.rank,id: quiz.id}}))
+        } else {
+          Quiz.update({rank: Sequelize.literal('rank - 1')},{where: {rank: quiz.rank,id: quiz.id}})
+        }
+      })
+
+      })
+});
 
 
 
@@ -100,10 +123,6 @@ quiz.get('/topQuizzesByLevel', (req,res) => {
 
 quiz.get('/countQuizzes', (req,res) => {
   Quiz.count('id').then(quiz => res.json(quiz))
-})
-
-quiz.get('/quizPlayedSum', (req,res) => {
-  Quiz.sum('played').then(quiz => res.json(quiz))
 })
 
 
@@ -222,12 +241,6 @@ quiz.post("/",(req,res) => {
  
 })
 
-quiz.put("/updatePlayed/:id", (req, res) => {
-  Quiz.update({ played: Sequelize.literal('played + 1') }, { where: { id: req.params.id } })
-    .then(result => res.send(result))
-    .catch(err => res.send(err));
-});
-
 quiz.put("/updateMedals/:id/:medal", (req, res) => {
   Quiz.update({ medals: Sequelize.literal('medals + 1') }, { where: { id: req.params.id } })
     .then(result => res.send(result))
@@ -238,16 +251,66 @@ quiz.put("/updateMedals/:id/:medal", (req, res) => {
 
 quiz.put("/close/:id/", (req, res) => {
   const contribId = req.body.contribId
+
+
+    Quiz.findOne({where: {id: req.params.id},include: {model: User,attributes: ['id','firstname','lastname','email']},raw: true}).then(quiz => {
+
+      console.log(quiz)
+      async function main(){
+        const transporter = nodemailer.createTransport({
+          host: 'smtp.ethereal.email',
+          port: 587,
+          auth: {
+              user: 'timmothy7@ethereal.email',
+              pass: 'SpkGn4bCWzyYyYS7mF'
+          }
+      });
+  
+          // Message object
+          let message = {
+            from: 'KWIZ <services@kwiz.com>',
+            to: quiz['user.firstname']+' '+quiz['user.lastname'] +'<'+quiz['user.email']+'>',
+            subject: 'KWIZ: Quiz fermé',
+            html: '<h2>Bonjour '+quiz['user.firstname']+' '+quiz['user.lastname']+',</h2>'+
+            '<p>Le quiz '+quiz.name+' est fermé aprés la victoire de 3 participants.</p>'+
+            '<a href="http://localhost:3000/contrib/" >Cliquez ici</a> pour visiter votre panneau et voir la liste des gangants.',
+        };
+    
+        transporter.sendMail(message, (err, info) => {
+            if (err) {
+                console.log('Error occurred. ' + err.message);
+                return process.exit(1);
+            }
+    
+            console.log('Message sent: %s', info.messageId);
+            // Preview only available when sending through an Ethereal account
+            console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+        });
+      }
+  
+      main().catch(console.error);
+    })
+
+   
+
+    
+
+
   Quiz.count({where: {userId: contribId}}).then(count => {
     Quiz.update({rank: count,
       medals: 0},{where: {id:  req.params.id}})
-  }).then(quiz => { 
-    Quiz.update({rank: Sequelize.literal('rank - 1')},{where: {userId: contribId}})
+      Quiz.update({rank: Sequelize.literal('rank - 1')},{where: {userId: contribId}})
   })
   .then(quiz =>
-    res.json(quiz)).catch(err => {
+    res.json(quiz))
+  .catch(err => {
       res.send(err)
 })
+
+
+
+
+
 })
 
 
@@ -257,7 +320,7 @@ quiz.put("/rank/", (req, res) => {
   const position = req.body.position
   const quizId = req.body.quizId
 
-Quiz.update({rank: 1},{where: {userId: userId,id: quizId}})
+
 Quiz.update({rank: Sequelize.literal('rank + 1')}, {where: {rank: {[Op.between]: [1,position]}, userId: userId, id: {[Op.ne]: quizId}}})
 .then(quiz => res.json(quiz));
 
@@ -265,11 +328,17 @@ Quiz.update({rank: Sequelize.literal('rank + 1')}, {where: {rank: {[Op.between]:
 })
 
 quiz.put('/:id', (req, res) => {
+
+  Quiz.update({rank: req.body.newRank},{where: {id: req.params.id}})
+  Quiz.update({rank: req.body.oldRank},{where: {rank: req.body.newRank,id: {[Op.ne]: req.params.id}}})
+  
+
   Quiz.update(
     {name: req.body.name,
     description: req.body.description,
     levelId: req.body.levelId,
     subjectId: req.body.subjectId},
+    
     {where: {id: req.params.id}}
   ).then(quiz => {
     res.json(quiz)

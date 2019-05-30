@@ -31,10 +31,6 @@ module.exports = db.sequelize.define(
         rank: {
             type: Sequelize.INTEGER,
         },
-        played: {
-            type: Sequelize.INTEGER,
-            defaultValue: 0
-        },
         medals: {
             type: Sequelize.INTEGER,
             defaultValue: 0

@@ -36,7 +36,7 @@ subjects.put('/:id/', function (req, res, next) {
     .then(subject => res.json(subject))
 })
 
-   subjects.delete('/:id',(req,res) => {
+subjects.delete('/:id',(req,res) => {
     Subject.destroy({
         where: {
             id: req.params.id

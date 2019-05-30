@@ -44,6 +44,9 @@ module.exports = db.sequelize.define(
         },
         levelId: {
             type: Sequelize.INTEGER
+        },
+        status: {
+            type: Sequelize.STRING,
         }
 
     },

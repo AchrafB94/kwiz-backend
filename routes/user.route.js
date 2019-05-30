@@ -1,53 +1,59 @@
+"use strict";
 const express = require("express");
 const users = express.Router();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-
+const crypto = require("crypto-random-string");
 const User = require("../model/user.model");
 const School = require("../model/school.model");
 const Level = require("../model/level.model");
-
 const Permission = require("../model/permission.model");
 const Role = require("../model/role.model");
 const Rule = require("../model/rule.model");
+const Score = require("../model/score.model");
+const VerificationToken = require("../model/verificationToken.model");
+const nodemailer = require("nodemailer");
+let fs = require("fs-extra");
+var multer = require("multer");
 
-let fs = require('fs-extra');
-
-var multer = require('multer')
-
-
-
+const transporter = nodemailer.createTransport({
+  host: "smtp.ethereal.email",
+  port: 587,
+  auth: {
+    user: "timmothy7@ethereal.email",
+    pass: "SpkGn4bCWzyYyYS7mF"
+  }
+});
 
 var storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-    cb(null, 'public/images')
+  destination: function(req, file, cb) {
+    cb(null, "public/images");
   },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname)
+  filename: function(req, file, cb) {
+    cb(null, file.originalname);
   }
-})
+});
 
-var upload = multer({ storage: storage }).single('file')
+var upload = multer({ storage: storage }).single("file");
 
+User.belongsTo(School);
+School.hasMany(User);
 
-User.belongsTo(School)
-School.hasMany(User)
+Score.belongsTo(User);
+User.hasMany(Score);
 
+User.belongsTo(Level);
+Level.hasMany(User);
 
+User.belongsTo(Role);
+Role.hasMany(User);
 
-User.belongsTo(Level)
-Level.hasMany(User)
+Permission.belongsTo(Role);
+Role.hasMany(Permission);
 
-User.belongsTo(Role)
-Role.hasMany(User)
-
-Permission.belongsTo(Role)
-Role.hasMany(Permission)
-
-Permission.belongsTo(Rule)
-Rule.hasMany(Permission)
-
+Permission.belongsTo(Rule);
+Rule.hasMany(Permission);
 
 users.use(cors());
 
@@ -66,7 +72,8 @@ users.post("/register", (req, res) => {
     levelId: req.body.levelId,
     class: req.body.class,
     image: req.body.image,
-    permission: 0,
+    status: "unverified",
+    roleId: 1
   };
 
   User.findOne({
@@ -81,6 +88,51 @@ users.post("/register", (req, res) => {
           User.create(userData)
             .then(user => {
               res.json({ status: user.email + " registered" });
+
+              VerificationToken.create({
+                userId: user.id,
+                token: crypto({ length: 10 })
+              }).then(token => {
+                let message = {
+                  from: "KWIZ <services@kwiz.com>",
+                  to:
+                    user.firstname +
+                    " " +
+                    user.lastname +
+                    "<" +
+                    user.email +
+                    ">",
+                  subject: "KWIZ: Confirmation de création de compte",
+                  html:
+                    "<h2>Bonjour " +
+                    user.firstname +
+                    " " +
+                    user.lastname +
+                    ",</h2>" +
+                    "<p>Votre demande de création de compte KWIZ a été traitée.</p>" +
+                    "<p>Vous devez maintenant cliquer sur le lien suivant :</p>" +
+                    '<a href="http://localhost:3000/confirm?token=' +
+                    token.token +
+                    '">http://localhost:3000/confirm?token=' +
+                    token.token +
+                    "</a>" +
+                    "<p>Si le lien ne s'affiche pas correctement, copier le texte ci-dessus dans la barre de votre navigateur.</p>"
+                };
+
+                transporter.sendMail(message, (err, info) => {
+                  if (err) {
+                    console.log("Error occurred. " + err.message);
+                    return process.exit(1);
+                  }
+
+                  console.log("Message sent: %s", info.messageId);
+                  // Preview only available when sending through an Ethereal account
+                  console.log(
+                    "Preview URL: %s",
+                    nodemailer.getTestMessageUrl(info)
+                  );
+                });
+              });
             })
             .catch(err => {
               res.send("error: " + err);
@@ -95,42 +147,243 @@ users.post("/register", (req, res) => {
     });
 });
 
-
-
-users.post('/upload',function(req, res) {
-     
-    upload(req, res, function (err) {
-           if (err instanceof multer.MulterError) {
-               return res.status(500).json(err)
-           } else if (err) {
-               return res.status(500).json(err)
-           }
-      return res.status(200).send(req.file)
-
-    })
-
+users.post("/upload", function(req, res) {
+  upload(req, res, function(err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(500).json(err);
+    } else if (err) {
+      return res.status(500).json(err);
+    }
+    return res.status(200).send(req.file);
+  });
 });
-
 
 users.post("/login", (req, res) => {
   User.findOne({
     where: {
       email: req.body.email
     },
-    include: {model: Role, include: [{model: Permission}]}
+    include: { model: Role, attributes: ['id','name'], include: [{ model: Permission, attributes: ['id','ruleId','roleId'] }] }
   })
     .then(user => {
+
       if (user) {
         if (bcrypt.compareSync(req.body.password, user.password)) {
-          let token = jwt.sign(user.dataValues, process.env.SECRET_KEY, {
-            expiresIn: 1440
-          });
-          res.send(token);
-        }else {
-          res.status(400).json({ error: "Username or password is not correct"});
+          if(user.status === 'unverified') {
+            res.json({code: 1004})
+
+          }
+          else if(user.status === 'blocked') {
+            res.json({code: 1005})
+
+          }else if (user.status === 'verified') {
+            let token = jwt.sign(user.dataValues, process.env.SECRET_KEY, {
+              expiresIn: 1440
+            });
+            res.send(token);
+          }
+
+
+        } else {
+          res.json({code: 1001})
         }
       } else {
-        res.status(400).json({ code: "Username or password is not correct"});
+        res.json({code: 1002})
+      }
+    })
+    .catch(err => {
+      res.json({code: 1003})
+    });
+});
+
+users.get("/confirm/", (req, res) => {
+  VerificationToken.findOne({ where: { token: req.body.token } })
+    .then(foundToken => {
+      if (foundToken) {
+        User.update(
+          { status: "verified" },
+          { where: { id: foundToken.userId } }
+        )
+          .then(updatedUser => {
+            VerificationToken.destroy({ where: { id: foundToken.id } });
+            return res.json({code: 1013});
+          })
+          .catch(reason => {
+            return res.json({code: 1014});
+          });
+      } else {
+        return res.json({code: 1015});
+      }
+    })
+    .catch(reason => {
+      return res.json({code: 1016});
+    });
+});
+
+users.get("/resetpassword/", (req, res) => {
+
+  console.log(req.body.email)
+
+  User.findOne({where: {email: req.body.email}}).then(foundUser => {
+    if (foundUser) {
+
+      VerificationToken.create({
+        userId: foundUser.id,
+        token: crypto({ length: 10 })
+      }).then(token => {
+        let message = {
+          from: "KWIZ <services@kwiz.com>",
+          to:
+            foundUser.firstname +
+            " " +
+            foundUser.lastname +
+            "<" +
+            foundUser.email +
+            ">",
+          subject: "KWIZ: demande de réinitialisation de mot de passe",
+          html:
+            "<h2>Bonjour " +
+            foundUser.firstname +
+            " " +
+            foundUser.lastname +
+            ",</h2>" +
+            "<p>Vous avez demandé la réinitialisation de votre mot de passe associé à votre compte KWIZ.</p>" +
+            "<p>Pour cela, veuillez cliquer sur le lien suivant:</p>" +
+            '<a href="http://localhost:3000/confirmpassword/'+
+            token.token +
+            '">http://localhost:3000/confirmpassword/' +
+            token.token +
+            "</a>" +
+            "<p>Si le lien ne s'affiche pas correctement, copier le texte ci-dessus dans la barre de votre navigateur.</p>"
+        };
+
+        transporter.sendMail(message, (err, info) => {
+          if (err) {
+            console.log("Error occurred. " + err.message);
+            return process.exit(1);
+          }
+
+          console.log("Message sent: %s", info.messageId);
+          // Preview only available when sending through an Ethereal account
+          console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+        });
+      });
+      return res.json({ code: 1017 });
+    } else {
+      return res.json({ code: 1018 });
+    }
+  }).catch(err => 
+    res.json(err))
+});
+
+users.get("/confirmpasswordreset/", (req, res) => {
+  VerificationToken.findOne({ where: { token: req.body.token } })
+    .then(foundToken => {
+      if (foundToken) {
+        bcrypt.hash(req.body.password, 10, (err, hash) => {
+
+          User.update({password: hash}, { where: { id: foundToken.userId } })
+          .then(updatedUser => {
+            VerificationToken.destroy({ where: { id: foundToken.id } });
+            let message = {
+              from: "KWIZ <services@kwiz.com>",
+              to:
+                foundUser.firstname +
+                " " +
+                foundUser.lastname +
+                "<" +
+                foundUser.email +
+                ">",
+              subject: "KWIZ: modification de votre mot de passe",
+              html:
+                "<h2>Bonjour " +
+                foundUser.firstname +
+                " " +
+                foundUser.lastname +
+                ",</h2>" +
+                "<p>Votre mot de passe a été modifié avec succès.</p>"
+            };
+    
+            transporter.sendMail(message, (err, info) => {
+              if (err) {
+                console.log("Error occurred. " + err.message);
+                return process.exit(1);
+              }
+    
+              console.log("Message sent: %s", info.messageId);
+              // Preview only available when sending through an Ethereal account
+              console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+            });
+            return res
+              .status(403)
+              .json(
+                `User with id ${
+                  foundToken.userId
+                } has been password changed verified`
+              );
+            
+          })
+          .catch(reason => {
+            return res.status(403).json(`Verification failed: ` + reason);
+          });
+          
+        })
+
+      } else {
+        return res.status(404).json(`Token expired`);
+      }
+    })
+    .catch(reason => {
+      return res.status(404).json(`Token expired: ` + reason);
+    });
+});
+
+users.put("/changepassword/:id", (req, res) => {
+  const oldPassword = req.body.oldPassword;
+  const newPassword = req.body.newPassword;
+
+  User.findByPk(req.params.id).then(user => {
+    if (bcrypt.compareSync(oldPassword, user.password)) {
+      bcrypt.hash(newPassword, 10, (err, hash) => {
+      User.update({password: hash},{where: {id: user.id}})
+      res.json({code: 1011})
+    
+    })
+  } else {
+    res.json({code: 1012})
+  }
+  })
+});
+
+users.post("/addcontributor", (req, res) => {
+  const userData = {
+    firstname: req.body.firstname,
+    lastname: req.body.lastname,
+    email: req.body.email,
+    password: req.body.password,
+    roleId: 2,
+    status: "verified"
+  };
+
+  User.findOne({
+    where: {
+      email: req.body.email
+    }
+  })
+    .then(user => {
+      if (!user) {
+        bcrypt.hash(req.body.password, 10, (err, hash) => {
+          userData.password = hash;
+          User.create(userData)
+            .then(user => {
+              res.json(user);
+            })
+            .catch(err => {
+              res.send("error: " + err);
+            });
+        });
+      } else {
+        res.json({ code: 10 });
       }
     })
     .catch(err => {
@@ -138,13 +391,12 @@ users.post("/login", (req, res) => {
     });
 });
 
-
 users.get("/new/", (req, res) => {
   User.findAll({
     limit: 15,
     order: [["createdAt", "DESC"]],
-    attributes: ["id","firstname", "lastname","image"],
-    include: {model: School, attributes: ['id','name']}
+    attributes: ["id", "firstname", "lastname", "image"],
+    include: { model: School, attributes: ["id", "name"] }
   }).then(user => res.json(user));
 });
 
@@ -152,74 +404,102 @@ users.get("/newest/", (req, res) => {
   User.findAll({
     limit: 1,
     order: [["createdAt", "DESC"]],
-    attributes: ["id","firstname", "lastname"]
+    attributes: ["id", "firstname", "lastname"]
   }).then(user => res.json(user));
 });
 
-users.get("/permission/",(req,res) => {
- Permission.findOne({where: {roleId: req.body.roleId,ruleId: req.body.ruleId},include: [{model: Rule, attributes: ['name']}]})
-  .then(permission => permission ? res.json({code: 110} ) : res.json({code: 120}))
-  .catch(err => res.json(err))
-})
-
+users.get("/permission/", (req, res) => {
+  Permission.findOne({
+    where: { roleId: req.body.roleId, ruleId: req.body.ruleId },
+    include: [{ model: Rule, attributes: ["name"] }]
+  })
+    .then(permission =>
+      permission ? res.json({ code: 110 }) : res.json({ code: 120 })
+    )
+    .catch(err => res.json(err));
+});
 
 users.get("/count", (req, res) => {
   User.count().then(count => res.json(count));
 });
 
-users.get("/:id",(req,res) => {
-  User.findByPk(req.params.id,
-    {include: [{model: School}, {model: Level},{model: Role, include: [{model: Permission}]}]}).then(user => res.json(user))
-})
+users.get("/:id", (req, res) => {
+  User.findByPk(req.params.id, {
+    include: [
+      { model: School },
+      { model: Level },
+      { model: Role, include: [{ model: Permission }] }
+    ]
+  }).then(user => res.json(user));
+});
 
-users.get("/",(req,res) => {
-  User.findAll({include: [{model: School},{model: Level}]}).then(user => res.json(user))
-})
+users.get("/", (req, res) => {
+  User.findAll({ include: [{ model: School }, { model: Level }] }).then(user =>
+    res.json(user)
+  );
+});
 
-
-users.put('/image/:id/', function (req, res, next) {
-
-  User.update({
-    image: req.body.filename},
-    {where: {id: req.params.id}}
-  )
-  .then(function(rowsUpdated) {
-    res.json(rowsUpdated)
-  })
-  .catch(next)
- })
-
-users.put('/:id', function (req, res, next) {
+users.put("/image/:id/", function(req, res, next) {
   User.update(
-    {firstname: req.body.firstname,
-    lastname: req.body.lastname,
-    birthdate: req.body.birthdate,
-    phone: req.body.phone,
-    gender: req.body.gender,
-    image: req.body.image,
-    levelId: req.body.levelId,
-  schoolId: req.body.schoolId},
-    {where: {id: req.params.id}}
+    {
+      image: req.body.filename
+    },
+    { where: { id: req.params.id } }
   )
-  .then(function(rowsUpdated) {
-    res.json(rowsUpdated)
+    .then(function(rowsUpdated) {
+      res.json(rowsUpdated);
+    })
+    .catch(next);
+});
+
+users.put("/block/:id/", (req, res) => {
+  Score.delete({ where: { userId: req.params.id } });
+
+  User.update({ status: "blocked" }, { where: { id: req.params.id } }).then(
+    user => res.json(user)
+  );
+});
+
+users.put("/unblock/:id/", (req, res) => {
+  User.update({ status: "active" }, { where: { id: req.params.id } });
+});
+
+users.put("/:id", function(req, res, next) {
+  User.update(
+    {
+      firstname: req.body.firstname,
+      lastname: req.body.lastname,
+      birthdate: req.body.birthdate,
+      phone: req.body.phone,
+      gender: req.body.gender,
+      image: req.body.image,
+      levelId: req.body.levelId,
+      schoolId: req.body.schoolId
+    },
+    { where: { id: req.params.id } }
+  )
+    .then(function(rowsUpdated) {
+      res.json(rowsUpdated);
+    })
+    .catch(next);
+});
+
+users.get("/", (req, res) => {
+  User.findAll().then(user => res.json(user));
+});
+
+users.delete("/:id", (req, res) => {
+  User.destroy({
+    where: {
+      id: req.params.id
+    }
   })
-  .catch(next)
- })
-
-
- users.get('/',(req,res) => {
-   User.findAll().then(user => res.json(user))
- })
- 
- users.put('/permission/:id/:level',(req,res) => {
-   User.update(
-    {permission: req.params.level},
-    {where: {id: req.params.id}}
-    )
- })
-
- 
- 
+    .then(user => {
+      res.json({ status: "user id :" + user.id + "has been deleted" });
+    })
+    .catch(err => {
+      res.send("error:" + err);
+    });
+});
 
 module.exports = users;

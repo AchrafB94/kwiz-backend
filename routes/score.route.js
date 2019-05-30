@@ -66,6 +66,10 @@ scores.post('/', (req, res) => {
     })
 })
 
+scores.get('/count',(req,res) => {
+   Score.count().then(count => res.json(count))
+})
+
 
 scores.get('/new',(req,res) => {
     Score.findAll({
@@ -311,6 +315,7 @@ scores.get('/quizwinners/:quizId/',(req,res) => {
         where: {quizId: req.params.quizId, [Op.or]: [{medal: '100'}, {medal: '10'}, {medal: '1'}] },    
         include: [{model: User, attributes: ['id','firstname','lastname']}, {model: School}],
         order: Sequelize.literal('createdAt DESC'),
+        limit: 10
     }).then(score => res.json(score))
 })
 
