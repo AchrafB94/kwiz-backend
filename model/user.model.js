@@ -33,7 +33,7 @@ module.exports = db.sequelize.define(
         phone: {
             type: Sequelize.STRING,
         },
-        class: {
+        classroom: {
             type: Sequelize.STRING,
         },
         image: {

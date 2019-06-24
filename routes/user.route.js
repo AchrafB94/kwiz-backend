@@ -1,4 +1,3 @@
-"use strict";
 const express = require("express");
 const users = express.Router();
 const cors = require("cors");
@@ -17,6 +16,10 @@ const nodemailer = require("nodemailer");
 let fs = require("fs-extra");
 var multer = require("multer");
 
+var verifyToken = require('../config/verifyToken');
+
+
+
 const transporter = nodemailer.createTransport({
   host: "smtp.ethereal.email",
   port: 587,
@@ -25,6 +28,7 @@ const transporter = nodemailer.createTransport({
     pass: "SpkGn4bCWzyYyYS7mF"
   }
 });
+
 
 var storage = multer.diskStorage({
   destination: function(req, file, cb) {
@@ -57,7 +61,7 @@ Rule.hasMany(Permission);
 
 users.use(cors());
 
-process.env.SECRET_KEY = "secret";
+process.env.SECRET_KEY = "secret4takentechs";
 
 users.post("/register", (req, res) => {
   const userData = {
@@ -70,7 +74,7 @@ users.post("/register", (req, res) => {
     gender: req.body.gender,
     phone: req.body.phone,
     levelId: req.body.levelId,
-    class: req.body.class,
+    classroom: req.body.classroom,
     image: req.body.image,
     status: "unverified",
     roleId: 1
@@ -111,9 +115,9 @@ users.post("/register", (req, res) => {
                     ",</h2>" +
                     "<p>Votre demande de création de compte KWIZ a été traitée.</p>" +
                     "<p>Vous devez maintenant cliquer sur le lien suivant :</p>" +
-                    '<a href="http://localhost:3000/confirm?token=' +
+                    '<a href="http://localhost:3000/confirm/' +
                     token.token +
-                    '">http://localhost:3000/confirm?token=' +
+                    '">http://localhost:3000/confirm/' +
                     token.token +
                     "</a>" +
                     "<p>Si le lien ne s'affiche pas correctement, copier le texte ci-dessus dans la barre de votre navigateur.</p>"
@@ -147,7 +151,7 @@ users.post("/register", (req, res) => {
     });
 });
 
-users.post("/upload", function(req, res) {
+users.post("/upload", verifyToken, function(req, res) {
   upload(req, res, function(err) {
     if (err instanceof multer.MulterError) {
       return res.status(500).json(err);
@@ -163,6 +167,7 @@ users.post("/login", (req, res) => {
     where: {
       email: req.body.email
     },
+    attributes: ['id','email','password','roleId','schoolId','levelId','status'],
     include: { model: Role, attributes: ['id','name'], include: [{ model: Permission, attributes: ['id','ruleId','roleId'] }] }
   })
     .then(user => {
@@ -177,8 +182,9 @@ users.post("/login", (req, res) => {
             res.json({code: 1005})
 
           }else if (user.status === 'verified') {
+            delete user.dataValues.password
             let token = jwt.sign(user.dataValues, process.env.SECRET_KEY, {
-              expiresIn: 1440
+              expiresIn: 86400
             });
             res.send(token);
           }
@@ -192,11 +198,11 @@ users.post("/login", (req, res) => {
       }
     })
     .catch(err => {
-      res.json({code: 1003})
+      res.json({code: 1003, error: err.message})
     });
 });
 
-users.get("/confirm/", (req, res) => {
+users.post("/confirm/", (req, res) => {
   VerificationToken.findOne({ where: { token: req.body.token } })
     .then(foundToken => {
       if (foundToken) {
@@ -216,13 +222,11 @@ users.get("/confirm/", (req, res) => {
       }
     })
     .catch(reason => {
-      return res.json({code: 1016});
+      return res.json({code: 1016,message: reason.message});
     });
 });
 
-users.get("/resetpassword/", (req, res) => {
-
-  console.log(req.body.email)
+users.post("/resetpassword/", (req, res) => {
 
   User.findOne({where: {email: req.body.email}}).then(foundUser => {
     if (foundUser) {
@@ -272,11 +276,12 @@ users.get("/resetpassword/", (req, res) => {
     } else {
       return res.json({ code: 1018 });
     }
-  }).catch(err => 
-    res.json(err))
+  }).catch(function(error) {
+    console.log('There has been a problem with the operation: ' + error.message);
+  });
 });
 
-users.get("/confirmpasswordreset/", (req, res) => {
+users.post("/confirmpasswordreset/", (req, res) => {
   VerificationToken.findOne({ where: { token: req.body.token } })
     .then(foundToken => {
       if (foundToken) {
@@ -314,23 +319,17 @@ users.get("/confirmpasswordreset/", (req, res) => {
               // Preview only available when sending through an Ethereal account
               console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
             });
-            return res
-              .status(403)
-              .json(
-                `User with id ${
-                  foundToken.userId
-                } has been password changed verified`
-              );
+            return res.json({code: 1019})
             
           })
           .catch(reason => {
-            return res.status(403).json(`Verification failed: ` + reason);
+            return res.status(403).json(`Erreur: ` + reason.message);
           });
           
         })
 
       } else {
-        return res.status(404).json(`Token expired`);
+        return res.json({code: 1020});
       }
     })
     .catch(reason => {
@@ -338,7 +337,7 @@ users.get("/confirmpasswordreset/", (req, res) => {
     });
 });
 
-users.put("/changepassword/:id", (req, res) => {
+users.put("/changepassword/:id",verifyToken, (req, res) => {
   const oldPassword = req.body.oldPassword;
   const newPassword = req.body.newPassword;
 
@@ -355,7 +354,8 @@ users.put("/changepassword/:id", (req, res) => {
   })
 });
 
-users.post("/addcontributor", (req, res) => {
+users.post("/addcontributor", verifyToken,(req, res) => {
+  
   const userData = {
     firstname: req.body.firstname,
     lastname: req.body.lastname,
@@ -383,7 +383,7 @@ users.post("/addcontributor", (req, res) => {
             });
         });
       } else {
-        res.json({ code: 10 });
+        res.json({ code: 1006 });
       }
     })
     .catch(err => {
@@ -391,8 +391,9 @@ users.post("/addcontributor", (req, res) => {
     });
 });
 
-users.get("/new/", (req, res) => {
+users.get("/new/", verifyToken, (req, res) => {
   User.findAll({
+    where: {roleId: 1},
     limit: 15,
     order: [["createdAt", "DESC"]],
     attributes: ["id", "firstname", "lastname", "image"],
@@ -400,7 +401,7 @@ users.get("/new/", (req, res) => {
   }).then(user => res.json(user));
 });
 
-users.get("/newest/", (req, res) => {
+users.get("/newest/",verifyToken, (req, res) => {
   User.findAll({
     limit: 1,
     order: [["createdAt", "DESC"]],
@@ -408,7 +409,7 @@ users.get("/newest/", (req, res) => {
   }).then(user => res.json(user));
 });
 
-users.get("/permission/", (req, res) => {
+users.get("/permission/",verifyToken, (req, res) => {
   Permission.findOne({
     where: { roleId: req.body.roleId, ruleId: req.body.ruleId },
     include: [{ model: Rule, attributes: ["name"] }]
@@ -419,11 +420,11 @@ users.get("/permission/", (req, res) => {
     .catch(err => res.json(err));
 });
 
-users.get("/count", (req, res) => {
+users.get("/count", verifyToken,(req, res) => {
   User.count().then(count => res.json(count));
 });
 
-users.get("/:id", (req, res) => {
+users.get("/:id",verifyToken, (req, res) => {
   User.findByPk(req.params.id, {
     include: [
       { model: School },
@@ -433,13 +434,13 @@ users.get("/:id", (req, res) => {
   }).then(user => res.json(user));
 });
 
-users.get("/", (req, res) => {
+users.get("/",verifyToken, (req, res) => {
   User.findAll({ include: [{ model: School }, { model: Level }] }).then(user =>
     res.json(user)
   );
 });
 
-users.put("/image/:id/", function(req, res, next) {
+users.put("/image/:id/", verifyToken, function(req, res, next) {
   User.update(
     {
       image: req.body.filename
@@ -452,19 +453,19 @@ users.put("/image/:id/", function(req, res, next) {
     .catch(next);
 });
 
-users.put("/block/:id/", (req, res) => {
-  Score.delete({ where: { userId: req.params.id } });
-
+users.put("/block/:id/",verifyToken, (req, res) => {
+  console.log(req.params.id)
   User.update({ status: "blocked" }, { where: { id: req.params.id } }).then(
     user => res.json(user)
   );
 });
 
-users.put("/unblock/:id/", (req, res) => {
-  User.update({ status: "active" }, { where: { id: req.params.id } });
+users.put("/unblock/:id/",verifyToken, (req, res) => {
+  User.update({ status: "verified" }, { where: { id: req.params.id } }).then(
+    user => res.json(user) );
 });
 
-users.put("/:id", function(req, res, next) {
+users.put("/:id", verifyToken, function(req, res, next) {
   User.update(
     {
       firstname: req.body.firstname,
@@ -474,7 +475,8 @@ users.put("/:id", function(req, res, next) {
       gender: req.body.gender,
       image: req.body.image,
       levelId: req.body.levelId,
-      schoolId: req.body.schoolId
+      schoolId: req.body.schoolId,
+      classroom: req.body.classroom
     },
     { where: { id: req.params.id } }
   )
@@ -484,11 +486,11 @@ users.put("/:id", function(req, res, next) {
     .catch(next);
 });
 
-users.get("/", (req, res) => {
-  User.findAll().then(user => res.json(user));
+users.get("/",verifyToken, (req, res) => {
+  User.findAll({order: Sequelize.literal('id ASC')}).then(user => res.json(user));
 });
 
-users.delete("/:id", (req, res) => {
+users.delete("/:id",verifyToken, (req, res) => {
   User.destroy({
     where: {
       id: req.params.id

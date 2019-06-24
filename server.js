@@ -4,6 +4,7 @@ var bodyParser = require("body-parser")
 var app = express()
 
 
+
 var Users = require('./routes/user.route')
 var Scores = require('./routes/score.route')
 var Subjects = require('./routes/subject.route')
@@ -12,9 +13,10 @@ var Question = require('./routes/question.route')
 var School = require('./routes/school.route')
 var Level = require('./routes/level.route')
 
-app.use(bodyParser.json())
 app.use(cors())
 app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+
 
 app.use('/users', Users)
 app.use('/scores', Scores)

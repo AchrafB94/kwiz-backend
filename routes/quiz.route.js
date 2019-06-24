@@ -1,4 +1,3 @@
-"use strict";
 const express = require("express");
 const quiz = express.Router();
 const cors = require("cors");
@@ -84,7 +83,7 @@ quiz.get("/available/", (req, res) => {
 quiz.get("/user/:userId", (req, res) => {
   Quiz.findAll({
     where: {userId: req.params.userId},
-    include: [{ model: Subject }, { model: Level }],
+    include: [{ model: Subject }, { model: Level}],
     order:  Sequelize.literal('rank ASC'),
   }).then(quiz => res.json(quiz));
 });
@@ -206,8 +205,6 @@ quiz.post("/",(req,res) => {
   
         var newQuestionData = {
           quizId: quiz.id,
-          levelId: quiz.levelId,
-          subjectId: quiz.subjectId,
           text: question.text,
           type: question.type,
           minimum: question.minimum
@@ -254,8 +251,6 @@ quiz.put("/close/:id/", (req, res) => {
 
 
     Quiz.findOne({where: {id: req.params.id},include: {model: User,attributes: ['id','firstname','lastname','email']},raw: true}).then(quiz => {
-
-      console.log(quiz)
       async function main(){
         const transporter = nodemailer.createTransport({
           host: 'smtp.ethereal.email',
@@ -294,9 +289,10 @@ quiz.put("/close/:id/", (req, res) => {
    
 
     
-
+    
 
   Quiz.count({where: {userId: contribId}}).then(count => {
+    console.log(count)
     Quiz.update({rank: count,
       medals: 0},{where: {id:  req.params.id}})
       Quiz.update({rank: Sequelize.literal('rank - 1')},{where: {userId: contribId}})
