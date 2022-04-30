@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize")
-const db = require("../config/db")
+const sequelize = require("../config/db")
 
-module.exports = db.sequelize.define(
+module.exports = sequelize.define(
     'quiz',
     {
         id: {
@@ -15,18 +15,24 @@ module.exports = db.sequelize.define(
         },
         subjectId: {
             type: Sequelize.INTEGER,
-            references: 'subjects',
-            referencesKey: 'id' 
-        },
-        levelId: {
-            type: Sequelize.INTEGER,
-            references: 'level',
-            referencesKey: 'id' 
+            references: {
+                model: 'subjects',
+                key: 'id'
+            }
         },
         userId: {
             type: Sequelize.INTEGER,
-            references: 'users',
-            referencesKey: 'id' 
+            references: {
+                model: 'users',
+                key: 'id'
+            }
+        },
+        levelId: {
+            type: Sequelize.INTEGER,
+            references: {
+                model: 'levels',
+                key: 'id'
+            }
         },
         rank: {
             type: Sequelize.INTEGER,
@@ -38,8 +44,6 @@ module.exports = db.sequelize.define(
         description: {
             type: Sequelize.STRING
         }
-
-
     },
     {
         tableName: 'quiz'

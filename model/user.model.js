@@ -1,8 +1,8 @@
 const Sequelize = require("sequelize")
-const db = require("../config/db")
+const sequelize = require("../config/db")
 
-module.exports = db.sequelize.define(
-    'user',
+module.exports = sequelize.define(
+    'users',
     {
         id: {
             type: Sequelize.INTEGER,
@@ -22,7 +22,11 @@ module.exports = db.sequelize.define(
             type: Sequelize.STRING
         },
         schoolId: {
-            type: Sequelize.NUMBER
+            type: Sequelize.NUMBER,
+            references: {
+                model: 'schools',
+                key: 'id'
+            }
         },
         birthdate: {
             type: Sequelize.DATE,
@@ -41,9 +45,17 @@ module.exports = db.sequelize.define(
         },
         roleId: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'roles',
+                key: 'id'
+            }
         },
         levelId: {
-            type: Sequelize.INTEGER
+            type: Sequelize.INTEGER,
+            references: {
+                model: 'levels',
+                key: 'id'
+            }
         },
         status: {
             type: Sequelize.STRING,

@@ -23,9 +23,6 @@ Quiz.belongsTo(Level);
 Subject.hasMany(Quiz);
 Quiz.belongsTo(Subject);
 
-User.hasMany(Quiz);
-Quiz.belongsTo(User);
-
 Quiz.hasMany(Score);
 Score.belongsTo(Quiz);
 

@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize")
-const db = require("../config/db")
+const sequelize = require("../config/db")
 
-module.exports = db.sequelize.define(
+module.exports = sequelize.define(
     'subject',
     {
         id: {

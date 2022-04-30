@@ -1,24 +1,28 @@
 const express = require("express");
 const users = express.Router();
+
+
+
+
 const cors = require("cors");
+
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto-random-string");
-const User = require("../model/user.model");
-const School = require("../model/school.model");
-const Level = require("../model/level.model");
-const Permission = require("../model/permission.model");
-const Role = require("../model/role.model");
-const Rule = require("../model/rule.model");
-const Score = require("../model/score.model");
-const VerificationToken = require("../model/verificationToken.model");
 const nodemailer = require("nodemailer");
-let fs = require("fs-extra");
 var multer = require("multer");
 
 var verifyToken = require('../config/verifyToken');
+const School = require("../model/school.model");
+const Level = require("../model/level.model");
+const Quiz = require("../model/quiz.model");
+const Score = require("../model/score.model");
 
-
+const User = require("../model/user.model");
+const Role = require("../model/role.model");
+const Rule = require("../model/rule.model");
+const VerificationToken = require("../model/verificationToken.model");
+const Permission = require("../model/permission.model");
 
 const transporter = nodemailer.createTransport({
   host: "smtp.ethereal.email",
@@ -41,6 +45,7 @@ var storage = multer.diskStorage({
 
 var upload = multer({ storage: storage }).single("file");
 
+
 User.belongsTo(School);
 School.hasMany(User);
 
@@ -53,11 +58,14 @@ Level.hasMany(User);
 User.belongsTo(Role);
 Role.hasMany(User);
 
+
+
 Permission.belongsTo(Role);
 Role.hasMany(Permission);
 
 Permission.belongsTo(Rule);
 Rule.hasMany(Permission);
+
 
 users.use(cors());
 

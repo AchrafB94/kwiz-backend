@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize")
-const db = require("../config/db")
+const sequelize = require("../config/db")
 
-module.exports = db.sequelize.define(
+module.exports = sequelize.define(
     'question',
     {
         id: {
@@ -11,8 +11,10 @@ module.exports = db.sequelize.define(
         },
         quizId: {
             type: Sequelize.INTEGER,
-            references: 'quiz',
-            referencesKey: 'id' 
+            references: {
+                model: 'quiz',
+                key: 'id'
+            }
         },
         type: {
             type: Sequelize.BOOLEAN

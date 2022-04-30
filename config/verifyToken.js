@@ -1,5 +1,5 @@
 var jwt = require('jsonwebtoken');
-var config = require('./config');
+var config = require('./secret');
 process.env.SECRET_KEY = "secret4takentechs";
 
 function verifyToken(req, res, next) {

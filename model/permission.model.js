@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize")
-const db = require("../config/db")
+const sequelize = require("../config/db")
 
-module.exports = db.sequelize.define(
+module.exports = sequelize.define(
     'permission',
     {
         id: {
@@ -11,13 +11,17 @@ module.exports = db.sequelize.define(
         },
         roleId: {
             type: Sequelize.INTEGER,
-            references: 'roles',
-            referencesKey: 'id' 
+            references: {
+                model: 'roles',
+                key: 'id'
+            }
         },
         ruleId: {
             type: Sequelize.INTEGER,
-            references: 'rules',
-            referencesKey: 'id' 
+            references: {
+                model: 'roles',
+                key: 'id'
+            }
         }
 
     },

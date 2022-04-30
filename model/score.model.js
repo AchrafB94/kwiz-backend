@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize")
-const db = require("../config/db")
+const sequelize = require("../config/db")
 
-module.exports = db.sequelize.define(
+module.exports = sequelize.define(
     'score',
     {
         id: {
@@ -10,31 +10,67 @@ module.exports = db.sequelize.define(
             autoIncrement: true
         },
         quizId: {
-            type: Sequelize.INTEGER,
+            type: Sequelize.INTEGER,            
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         userId: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         schoolId: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         subjectId: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         levelId: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         score: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         percentage: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         time: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         medal: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         }
 
 

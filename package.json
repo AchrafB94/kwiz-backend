@@ -4,12 +4,13 @@
   "description": "backend test",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "debug": "nodemon --inspect server.js"
   },
   "author": "Mohamed Achraf Bouanani",
   "license": "ISC",
   "dependencies": {
-    "bcrypt": "^3.0.0",
+    "bcrypt": "^5.0.1",
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
     "crypto-random-string": "^3.0.0",
@@ -22,10 +23,11 @@
     "mysql2": "^1.6.5",
     "node-schedule": "^1.3.2",
     "nodemailer": "^6.2.1",
-    "nodemon": "^1.18.10",
+    "nodemon": "^2.0.16",
     "sequelize": "^5.8.7",
     "sequelize-cli": "^5.4.0",
-    "socket.io": "^2.2.0"
+    "socket.io": "^4.5.0",
+    "sqlite3": "^5.0.6"
   },
   "devDependencies": {}
 }

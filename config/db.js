@@ -1,18 +1,8 @@
 const Sequelize = require("sequelize")
-const db = {}
-const sequelize = new Sequelize("kwiz", "root", "", {
-    host: 'localhost',
-    dialect: 'mysql',
-
-    pool: {
-        max: 5,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
-    }
+const sequelize = new Sequelize("kwiz", "test","test", {
+    storage: './database.sqlite',
+    dialect: 'sqlite'
 })
 
-db.sequelize = sequelize
-db.Sequelize = Sequelize
 
-module.exports = db 
+module.exports = sequelize 

@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize")
-const db = require("../config/db")
+const sequelize = require("../config/db")
 
-module.exports = db.sequelize.define(
+module.exports = sequelize.define(
     'verificationToken',
     {
         id: {
@@ -11,6 +11,10 @@ module.exports = db.sequelize.define(
         },
         userId: {
             type: Sequelize.INTEGER,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         token: {
             type: Sequelize.STRING,
