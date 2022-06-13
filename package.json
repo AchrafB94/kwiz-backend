@@ -2,7 +2,7 @@
   "name": "kwiz",
   "version": "1.0.0",
   "description": "backend test",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "nodemon server.js",
     "debug": "nodemon --inspect server.js"
