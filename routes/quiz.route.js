@@ -32,6 +32,8 @@ Question.belongsTo(Quiz);
 Question.hasMany(Answer);
 Answer.belongsTo(Question);
 
+Quiz.belongsTo(User)
+User.hasMany(Quiz)
 
 
 quiz.use(cors());
@@ -71,7 +73,7 @@ var year=last.getFullYear();
 quiz.get("/available/", (req, res) => {
   Quiz.findAll({
     where: {rank: 0},
-    order: Sequelize.fn("RAND"),
+    order: Sequelize.fn("RANDOM"),
     include: [{ model: Subject }, { model: Level }, {model: User, attributes: ['id','firstname', 'lastname']}]
   }).then(quiz => res.json(quiz));
 });
@@ -89,7 +91,7 @@ quiz.get("/user/:userId", (req, res) => {
 quiz.get("/suggest/:subjectId/:currentId", (req, res) => {
   Quiz.findAll({
     where: {subjectId: req.params.subjectId, id: {[Op.ne]: req.params.currentId}},
-    order: Sequelize.fn("RAND"),
+    order: Sequelize.fn("RANDOM"),
     limit: 3,
     include: [{ model: Subject }, { model: Level }, {model: User, attributes: ['firstname', 'lastname']}]
   }).then(quiz => res.json(quiz));
@@ -133,7 +135,7 @@ quiz.get("/new", (req, res) => {
 
 quiz.get("/:id", (req, res) => {
   Quiz.findByPk(req.params.id, {
-    order: Sequelize.fn("RAND"),
+    order: Sequelize.fn("RANDOM"),
     include: [
       { model: User, attributes: ['firstname','lastname']},
       { model: Subject, attributes: ['id','name'] },

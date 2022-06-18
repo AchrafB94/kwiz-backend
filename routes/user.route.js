@@ -87,7 +87,7 @@ users.post("/register", (req, res) => {
     status: "unverified",
     roleId: 1
   };
-
+  
   User.findOne({
     where: {
       email: req.body.email
