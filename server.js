@@ -26,6 +26,6 @@ app.use("/levels", Level);
 var Users = require("./routes/user.route");
 app.use("/users", Users);
 
-app.listen(process.env.PORT | PORT, () => {
+app.listen(process.env.PORT || PORT, () => {
   console.log("Server is running at port" + PORT);
 });
