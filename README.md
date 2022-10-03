@@ -5,4 +5,4 @@ Schools API:
 https://kwizreact.herokuapp.com/schools/
 
 Subjects API:
-https://kwizreact.herokuapp.com/schools/
+https://kwizreact.herokuapp.com/subjects/
